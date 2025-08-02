@@ -1,0 +1,2 @@
+Vehicle_ID,Vehicle_Type,Vehicle_Confidence,Plate_Text,Plate_Confidence,OCR_Confidence,Raw_OCR_Text,Vehicle_BBox,Plate_BBox,Vehicle_Image,Plate_Image
+1,car,0.913,KL54 42670,0.758,0.686,KL54 42670,"(81, 34, 321, 253)","(136, 199, 258, 241)",vehicle_1_car.jpg,plate_1_original.jpg

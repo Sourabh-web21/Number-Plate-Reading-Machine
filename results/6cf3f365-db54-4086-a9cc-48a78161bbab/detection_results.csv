@@ -1,0 +1,2 @@
+Vehicle_ID,Vehicle_Type,Vehicle_Confidence,Plate_Text,Plate_Confidence,OCR_Confidence,Raw_OCR_Text,Vehicle_BBox,Plate_BBox,Vehicle_Image,Plate_Image
+1,car,0.926,MH 20EJ0364,0.692,0.96,MH 20EJ0364,"(1, 12, 376, 255)","(101, 146, 285, 198)",vehicle_1_car.jpg,plate_1_original.jpg

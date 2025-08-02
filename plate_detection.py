@@ -12,7 +12,7 @@ import re
 
 # === Enhanced OCR Functions ===
 def enhance_plate_image_advanced(img):
-    """Enhanced plate image preprocessing for difficult cases"""
+    """Gentle plate image enhancement for better OCR"""
     if img.size == 0:
         return img
 
@@ -22,45 +22,21 @@ def enhance_plate_image_advanced(img):
     else:
         gray = img.copy()
 
-    # Upscale significantly for small plates
+    # Upscale if small
     height, width = gray.shape
-    if height < 60 or width < 120:
-        scale_factor = max(3, 300 // min(height, width))
-        gray = cv2.resize(gray, (width * scale_factor, height * scale_factor), 
-                         interpolation=cv2.INTER_CUBIC)
+    if height < 50 or width < 100:
+        scale_factor = max(2, 200 // min(height, width))
+        gray = cv2.resize(gray, (width * scale_factor, height * scale_factor), interpolation=cv2.INTER_CUBIC)
 
-    # Multiple enhancement techniques
-    enhanced_versions = []
-    
-    # Version 1: CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-    enhanced_versions.append(clahe.apply(gray))
-    
-    # Version 2: Gamma correction
-    gamma = 1.5
-    gamma_corrected = np.array(255 * (gray / 255) ** gamma, dtype='uint8')
-    enhanced_versions.append(gamma_corrected)
-    
-    # Version 3: Bilateral filter + sharpening
-    bilateral = cv2.bilateralFilter(gray, 9, 75, 75)
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    sharpened = cv2.filter2D(bilateral, -1, kernel)
-    enhanced_versions.append(sharpened)
-    
-    # Version 4: Morphological operations
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-    morph = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
-    enhanced_versions.append(morph)
-    
-    # Version 5: Threshold variations
-    _, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    enhanced_versions.append(thresh1)
-    
-    _, thresh2 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-    enhanced_versions.append(thresh2)
-    
-    # Return the original enhanced version (can be modified to return best)
-    return enhanced_versions[0]
+    # Mild CLAHE for contrast
+    clahe = cv2.createCLAHE(clipLimit=1.2, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+
+    # Light sharpening (reduced strength)
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+    sharpened = cv2.filter2D(enhanced, -1, kernel)
+
+    return sharpened
 
 def enhance_plate_image_for_ocr(img):
     """Preprocess plate image for best OCR results, including upscaling."""
@@ -90,7 +66,7 @@ def enhance_plate_image_for_ocr(img):
     return sharpened
 
 def filter_plate_text_relaxed(text):
-    """Ultra-relaxed filtering that accepts partial plates like TM-01"""
+    """Enhanced filtering for Indian license plates"""
     if not text:
         return ""
     
@@ -104,228 +80,209 @@ def filter_plate_text_relaxed(text):
     # Handle multiple spaces
     text = ' '.join(text.split())
     
-    # Accept ANY text with reasonable length
-    if len(text) >= 2:  # Minimum 2 characters
-        # Check if it looks like a plate (has alphanumeric content)
-        has_alnum = any(c.isalnum() for c in text)
-        
-        if has_alnum:
-            return text
+    # Split into words and filter
+    words = text.split()
+    filtered_words = []
     
-    # Even more relaxed - accept single characters if they're alphanumeric
-    if len(text) == 1 and text.isalnum():
-        return text
+    for word in words:
+        # Skip common OCR artifacts
+        if word in ['IND', 'INDIA', 'BHARAT', 'GOV', 'GOVT']:
+            continue
+        
+        # Keep words that look like plate components
+        if len(word) >= 2:
+            # Check if it's alphanumeric (letters + numbers)
+            has_letter = any(c.isalpha() for c in word)
+            has_number = any(c.isdigit() for c in word)
+            
+            # Accept if it has both letters and numbers, or is reasonably long
+            if (has_letter and has_number) or len(word) >= 4:
+                filtered_words.append(word)
+            # Accept pure letter sequences (state codes)
+            elif has_letter and not has_number and len(word) <= 3:
+                filtered_words.append(word)
+            # Accept pure number sequences
+            elif has_number and not has_letter and len(word) >= 2:
+                filtered_words.append(word)
+    
+    # Join filtered words
+    result = ' '.join(filtered_words)
+    
+    # Final validation - should have at least one letter and one number
+    if result and (any(c.isalpha() for c in result) and any(c.isdigit() for c in result)):
+        return result
     
     return ""
 
 def process_two_line_plate(plate_img, ocr_engine):
-    """Enhanced processing for two-line license plates"""
+    """Process two-line license plates"""
     results = []
-    
-    # Method 1: Read entire plate first
+
+    # Try reading the entire plate
     try:
-        full_result = ocr_engine.readtext(plate_img, detail=1, paragraph=False)
+        full_result = ocr_engine.readtext(plate_img, detail=1)
         if full_result:
             results.extend(full_result)
     except:
         pass
-    
-    # Method 2: Split horizontally and read each half
+
+    # Try reading top and bottom separately
     try:
         h, w = plate_img.shape[:2]
-        
-        # Split into top and bottom halves
         top_half = plate_img[:h//2, :]
         bottom_half = plate_img[h//2:, :]
-        
-        # Add some overlap to catch text on the border
-        overlap = max(5, h//10)
-        top_extended = plate_img[:h//2 + overlap, :]
-        bottom_extended = plate_img[h//2 - overlap:, :]
-        
-        # Read each section
-        for section, name in [(top_half, "top"), (bottom_half, "bottom"), 
-                             (top_extended, "top_ext"), (bottom_extended, "bottom_ext")]:
-            if section.shape[0] > 10 and section.shape[1] > 20:  # Minimum size check
-                section_results = ocr_engine.readtext(section, detail=1, paragraph=False)
-                if section_results:
-                    results.extend(section_results)
+
+        top_result = ocr_engine.readtext(top_half, detail=1)
+        bottom_result = ocr_engine.readtext(bottom_half, detail=1)
+
+        if top_result:
+            results.extend(top_result)
+        if bottom_result:
+            results.extend(bottom_result)
     except:
         pass
-    
-    # Method 3: Try with different preprocessing for two-line plates
-    try:
-        # Enhance contrast for better line separation
-        enhanced = cv2.convertScaleAbs(plate_img, alpha=1.5, beta=10)
-        enhanced_results = ocr_engine.readtext(enhanced, detail=1, paragraph=False)
-        if enhanced_results:
-            results.extend(enhanced_results)
-    except:
-        pass
-    
+
     return results
 
 def combine_partial_results(results):
-    """Enhanced combination of partial OCR results for two-line plates"""
+    """Combine partial OCR results into complete plate"""
     if not results:
         return ""
-    
-    # Extract text fragments with positions
-    fragments = []
+
+    # Extract all text fragments
+    texts = []
     for result in results:
         if len(result) >= 3:
-            bbox = result[0]
             text = result[1].strip().upper()
             conf = result[2]
-            
-            if len(text) >= 1 and conf > 0.3:  # Lower threshold for partial text
-                # Calculate center Y position for sorting
-                center_y = sum([point[1] for point in bbox]) / len(bbox)
-                fragments.append((text, conf, center_y, bbox))
-    
-    if not fragments:
+            if len(text) >= 2:
+                texts.append((text, conf))
+
+    if not texts:
         return ""
-    
-    # Remove duplicates (same text with similar positions)
-    unique_fragments = []
-    for frag in fragments:
-        is_duplicate = False
-        for existing in unique_fragments:
-            if (frag[0] == existing[0] and 
-                abs(frag[2] - existing[2]) < 20):  # Similar Y position
-                if frag[1] > existing[1]:  # Keep higher confidence
-                    unique_fragments.remove(existing)
-                    unique_fragments.append(frag)
-                is_duplicate = True
-                break
-        if not is_duplicate:
-            unique_fragments.append(frag)
-    
-    # Sort by Y position (top to bottom)
-    unique_fragments.sort(key=lambda x: x[2])
-    
-    # Group into lines based on Y position
-    lines = []
-    current_line = []
-    last_y = -1
-    
-    for frag in unique_fragments:
-        text, conf, y, bbox = frag
-        
-        if last_y == -1 or abs(y - last_y) < 15:  # Same line
-            current_line.append((text, conf))
-        else:  # New line
-            if current_line:
-                lines.append(current_line)
-            current_line = [(text, conf)]
-        last_y = y
-    
-    if current_line:
-        lines.append(current_line)
-    
-    # Combine text from each line
-    combined_lines = []
-    for line in lines:
-        # Sort fragments in line by confidence
-        line.sort(key=lambda x: x[1], reverse=True)
-        line_text = " ".join([frag[0] for frag in line])
-        combined_lines.append(line_text.strip())
-    
-    # Join lines with space or newline
-    if len(combined_lines) == 1:
-        return combined_lines[0]
-    elif len(combined_lines) == 2:
-        # For two-line plates, join with space
-        return f"{combined_lines[0]} {combined_lines[1]}"
-    else:
-        # Multiple fragments, join best ones
-        return " ".join(combined_lines[:2])  # Take top 2 lines
+
+    # Sort by confidence
+    texts.sort(key=lambda x: x[1], reverse=True)
+
+    # Try to combine fragments
+    combined = ""
+    for text, conf in texts:
+        if not combined:
+            combined = text
+        else:
+            # Check if this fragment adds new information
+            if not any(frag in combined for frag in text.split()):
+                combined += " " + text
+
+    return combined.strip()
 
 def try_multiple_ocr_methods(plate_img, ocr_engine):
-    """Comprehensive OCR with multiple enhancement techniques"""
-    all_results = []
-    
-    # Get multiple enhanced versions
-    if len(plate_img.shape) == 3:
-        gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = plate_img.copy()
-    
-    # Create multiple enhanced versions
-    enhanced_versions = []
-    
-    # Original
-    enhanced_versions.append(gray)
-    
-    # Upscaled versions
-    for scale in [2, 3, 4]:
-        h, w = gray.shape
-        upscaled = cv2.resize(gray, (w * scale, h * scale), interpolation=cv2.INTER_CUBIC)
-        enhanced_versions.append(upscaled)
-    
-    # CLAHE enhanced
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-    enhanced_versions.append(clahe.apply(gray))
-    
-    # Gamma corrections
-    for gamma in [0.5, 1.5, 2.0]:
-        gamma_corrected = np.array(255 * (gray / 255) ** gamma, dtype='uint8')
-        enhanced_versions.append(gamma_corrected)
-    
-    # Threshold versions
-    _, thresh_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    enhanced_versions.append(thresh_otsu)
-    
-    _, thresh_inv = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    enhanced_versions.append(thresh_inv)
-    
-    # Bilateral filter + sharpening
-    bilateral = cv2.bilateralFilter(gray, 9, 75, 75)
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    sharpened = cv2.filter2D(bilateral, -1, kernel)
-    enhanced_versions.append(sharpened)
-    
-    # Try OCR on each version
-    for i, enhanced in enumerate(enhanced_versions):
-        try:
-            # Method 1: Standard OCR
-            results = ocr_engine.readtext(enhanced, detail=1, paragraph=False)
-            if results:
-                all_results.extend([(r[1], r[2], f"method_{i}_std") for r in results])
-            
-            # Method 2: Paragraph mode
-            results_para = ocr_engine.readtext(enhanced, detail=1, paragraph=True)
-            if results_para:
-                all_results.extend([(r[1], r[2], f"method_{i}_para") for r in results_para])
-            
-            # Method 3: Different allowlist
-            results_alpha = ocr_engine.readtext(enhanced, detail=1, allowlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ- ')
-            if results_alpha:
-                all_results.extend([(r[1], r[2], f"method_{i}_alpha") for r in results_alpha])
-                
-        except Exception as e:
-            continue
-    
-    # Process results
-    if all_results:
-        # Sort by confidence
-        all_results.sort(key=lambda x: x[1], reverse=True)
+    """Try multiple OCR approaches and return the best result"""
+    results = []
+
+    # Method 1: Process as two-line plate
+    try:
+        two_line_results = process_two_line_plate(plate_img, ocr_engine)
+        results.extend(two_line_results)
+    except:
+        pass
+
+    # Method 2: Enhanced image
+    try:
+        enhanced = enhance_plate_image_advanced(plate_img)
+        enhanced_results = process_two_line_plate(enhanced, ocr_engine)
+        results.extend(enhanced_results)
+    except:
+        pass
+
+    # Method 3: Upscaled
+    try:
+        if len(plate_img.shape) == 3:
+            gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = plate_img
+        upscaled = cv2.resize(gray, (gray.shape[1]*2, gray.shape[0]*2), interpolation=cv2.INTER_CUBIC)
+        upscaled_results = process_two_line_plate(upscaled, ocr_engine)
+        results.extend(upscaled_results)
+    except:
+        pass
+
+    # Method 4: Original image
+    try:
+        ocr1 = ocr_engine.readtext(plate_img, detail=1)
+        if ocr1:
+            results.extend(ocr1)
+    except:
+        pass
+
+    # Method 5: Grayscale
+    try:
+        if len(plate_img.shape) == 3:
+            gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = plate_img
+        ocr3 = ocr_engine.readtext(gray, detail=1)
+        if ocr3:
+            results.extend(ocr3)
+    except:
+        pass
+
+    # Get best single result instead of combining
+    if results:
+        # Find the best result by confidence
+        best_result = max(results, key=lambda x: x[2] if len(x) >= 3 else 0)
         
-        # Try to find best result
-        for text, conf, method in all_results:
-            cleaned_text = text.strip().upper()
-            if len(cleaned_text) >= 2:  # Minimum length
-                # Basic filtering
-                cleaned_text = re.sub(r'[^A-Z0-9\s-]', '', cleaned_text)
-                cleaned_text = ' '.join(cleaned_text.split())
-                
-                if len(cleaned_text) >= 2:
-                    return (cleaned_text, conf)
+        if len(best_result) >= 3:
+            raw_text = best_result[1].strip().upper()
+            confidence = best_result[2]
+            
+            # Filter the best result
+            filtered_text = filter_plate_text_relaxed(raw_text)
+            
+            if filtered_text:
+                return (filtered_text, confidence)
+            else:
+                # Return raw text if filtering removes everything
+                return (raw_text, confidence)
+
+    return None
+
+def try_multiple_ocr_methods_aggressive(plate_img, ocr_engine):
+    """More aggressive OCR with additional preprocessing"""
+    results = []
+    
+    # Method 1: Original try_multiple_ocr_methods
+    original_result = try_multiple_ocr_methods(plate_img, ocr_engine)
+    if original_result:
+        results.append(original_result)
+    
+    # Method 2: More aggressive enhancement
+    try:
+        # Stronger enhancement
+        enhanced = enhance_plate_image_for_ocr(plate_img)
         
-        # If no good result, return best raw result
-        if all_results:
-            best = all_results[0]
-            return (best[0].strip(), best[1])
+        # Try with different scales
+        for scale in [1.5, 2.0, 2.5]:
+            if len(enhanced.shape) == 3:
+                gray = cv2.cvtColor(enhanced, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = enhanced
+                
+            h, w = gray.shape
+            scaled = cv2.resize(gray, (int(w*scale), int(h*scale)), interpolation=cv2.INTER_CUBIC)
+            
+            ocr_results = ocr_engine.readtext(scaled, detail=1)
+            if ocr_results:
+                # Get best result
+                best = max(ocr_results, key=lambda x: x[2] if len(x) >= 3 else 0)
+                if len(best) >= 3 and best[2] > 0.3:
+                    results.append((best[1], best[2]))
+    except:
+        pass
+    
+    # Return best result
+    if results:
+        return max(results, key=lambda x: x[1] if len(x) >= 2 else 0)
     
     return None
 
@@ -516,6 +473,11 @@ def process_image_enhanced_ocr(image_path, output_dir="output"):
             print(f"     Filtered: '{result['Plate_Text']}'")
 
     return results, df
+
+
+
+
+
 
 
 
