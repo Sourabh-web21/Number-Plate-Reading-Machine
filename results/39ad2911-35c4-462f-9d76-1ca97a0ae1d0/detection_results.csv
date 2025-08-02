@@ -1,0 +1,2 @@
+Vehicle_ID,Vehicle_Type,Vehicle_Confidence,Plate_Text,Plate_Confidence,OCR_Confidence,Raw_OCR_Text,Vehicle_BBox,Plate_BBox,Vehicle_Image,Plate_Image
+1,govt bus,0.934,AN0691,0.767,0.927,AN0691,"(81, 66, 550, 441)","(169, 357, 248, 396)",vehicle_1_govt bus.jpg,plate_1_original.jpg

@@ -55,799 +55,401 @@ async def load_models():
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <title>AI License Plate Detection System</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-        <style>
-            :root {
-                --primary: #667eea;
-                --secondary: #764ba2;
-                --accent: #f093fb;
-                --success: #4caf50;
-                --error: #f44336;
-                --warning: #ff9800;
-                --dark: #2c3e50;
-                --light: #ecf0f1;
-                --shadow: 0 10px 30px rgba(0,0,0,0.1);
-                --shadow-hover: 0 20px 60px rgba(0,0,0,0.2);
-            }
+<!DOCTYPE html>
+<html>
+<head>
+    <title>License Plate Detection</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .left-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .right-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        
+        h1 {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .upload-area {
+            border: 3px dashed #4ecdc4;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            margin: 30px 0;
+            background: linear-gradient(45deg, rgba(78, 205, 196, 0.1), rgba(255, 107, 107, 0.1));
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #ff6b6b;
+            background: linear-gradient(45deg, rgba(255, 107, 107, 0.1), rgba(78, 205, 196, 0.1));
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .upload-area p {
+            font-size: 1.2em;
+            color: #555;
+            margin: 10px 0;
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(45deg, #ffeaa7, #fab1a0);
+            border-radius: 15px;
+            color: #2d3436;
+        }
+        
+        .loading p {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .results h2 {
+            color: #2d3436;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            background: linear-gradient(45deg, #a29bfe, #6c5ce7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .visualization {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .visualization img {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .visualization img:hover {
+            transform: scale(1.02);
+        }
+        
+        .vehicle-card {
+            background: linear-gradient(135deg, rgba(116, 75, 162, 0.1), rgba(102, 126, 234, 0.1));
+            border: none;
+            margin: 20px 0;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .vehicle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .vehicle-card h4 {
+            color: #2d3436;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .vehicle-card p {
+            margin: 8px 0;
+            font-weight: 500;
+            color: #636e72;
+        }
+        
+        .vehicle-card strong {
+            color: #2d3436;
+        }
+        
+        .plate-display {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
 
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+        .plate-display h3 {
+            color: white;
+            font-size: 1.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .plate-number {
+            font-size: 2em;
+            font-weight: 900;
+            letter-spacing: 3px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 10px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .images {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .images > div {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .images img {
+            width: 100%;
+            max-height: 150px;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            background: white;
+            padding: 5px;
+        }
+        
+        .images img:hover {
+            transform: scale(1.05);
+        }
+        
+        .images p {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3436;
+            font-size: 0.9em;
+            text-align: center;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin-top: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #00a085, #00b7b8);
+        }
+        
+        .spinner {
+            border: 4px solid rgba(78, 205, 196, 0.3);
+            border-top: 4px solid #4ecdc4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h1>🚗 License Plate Detection</h1>
             
-            body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
-                min-height: 100vh;
-                overflow-x: hidden;
-            }
-
-            .background-animation {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-                background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
-                background-size: 400% 400%;
-                animation: gradientShift 15s ease infinite;
-            }
-
-            @keyframes gradientShift {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-            }
-
-            .container {
-                max-width: 100%;
-                height: 100vh;
-                display: flex;
-                flex-direction: column;
-                position: relative;
-                z-index: 1;
-            }
-
-            .app-header {
-                text-align: center;
-                padding: 5px;
-                background: rgba(255,255,255,0.1);
-                backdrop-filter: blur(20px);
-                border-bottom: 1px solid rgba(255,255,255,0.2);
-                height: 60px;
-            }
-
-            .app-title {
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: white;
-                margin-bottom: 3px;
-                text-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            }
-
-            .app-subtitle {
-                font-size: 0.9rem;
-                color: rgba(255,255,255,0.9);
-                font-weight: 300;
-            }
-
-            .split-container {
-                display: flex;
-                flex: 1;
-                gap: 0;
-                padding: 0;
-                height: calc(100vh - 60px);
-            }
-
-            .left-panel, .right-panel {
-                flex: 1;
-                width: 50%;
-                background: rgba(255,255,255,0.95);
-                backdrop-filter: blur(20px);
-                border-radius: 0;
-                padding: 30px;
-                box-shadow: none;
-                border: none;
-                overflow-y: auto;
-            }
-
-            .left-panel {
-                border-right: 2px solid rgba(255,255,255,0.3);
-            }
-
-            .panel-title {
-                font-size: 1.5rem;
-                font-weight: 600;
-                color: var(--dark);
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .upload-area {
-                border: 3px dashed #ddd;
-                border-radius: 15px;
-                padding: 40px 20px;
-                text-align: center;
-                cursor: pointer;
-                background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
-                transition: all 0.3s ease;
-                margin-bottom: 20px;
-            }
-
-            .upload-area:hover {
-                border-color: var(--primary);
-                background: linear-gradient(135deg, #f0f4ff 0%, #fff 100%);
-                transform: scale(1.02);
-            }
-
-            .upload-area.dragover {
-                border-color: var(--success);
-                background: linear-gradient(135deg, #f0fff4 0%, #fff 100%);
-                transform: scale(1.05);
-            }
-
-            .upload-icon {
-                font-size: 3rem;
-                color: var(--primary);
-                margin-bottom: 15px;
-                transition: all 0.3s ease;
-            }
-
-            .upload-area:hover .upload-icon {
-                transform: scale(1.1) rotate(5deg);
-                color: var(--secondary);
-            }
-
-            .upload-text {
-                font-size: 1.2rem;
-                font-weight: 600;
-                color: var(--dark);
-                margin-bottom: 8px;
-            }
-
-            .upload-subtext {
-                color: #666;
-                font-size: 0.9rem;
-            }
-
-            #fileInput {
-                display: none;
-            }
-
-            .progress-container {
-                display: none;
-                margin-top: 20px;
-                background: rgba(255,255,255,0.95);
-                backdrop-filter: blur(20px);
-                border-radius: 15px;
-                padding: 20px;
-                box-shadow: var(--shadow);
-            }
-
-            .progress-header {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                margin-bottom: 15px;
-            }
-
-            .progress-spinner {
-                width: 30px;
-                height: 30px;
-                border: 3px solid #f3f3f3;
-                border-top: 3px solid var(--primary);
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            }
-
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-
-            .progress-text {
-                font-weight: 600;
-                color: var(--dark);
-            }
-
-            .progress-bar {
-                width: 100%;
-                height: 8px;
-                background: #f0f0f0;
-                border-radius: 4px;
-                overflow: hidden;
-            }
-
-            .progress-fill {
-                height: 100%;
-                background: linear-gradient(90deg, var(--primary), var(--secondary));
-                border-radius: 4px;
-                width: 0%;
-                animation: progressAnimation 3s ease-in-out infinite;
-            }
-
-            @keyframes progressAnimation {
-                0%, 100% { width: 0%; }
-                50% { width: 100%; }
-            }
-
-            .alert {
-                padding: 15px;
-                border-radius: 10px;
-                margin: 15px 0;
-                font-weight: 500;
-                display: none;
-                animation: slideIn 0.5s ease-out;
-            }
-
-            .alert-success {
-                background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                color: #155724;
-                border-left: 5px solid var(--success);
-            }
-
-            .alert-error {
-                background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-                color: #721c24;
-                border-left: 5px solid var(--error);
-            }
-
-            .results-container {
-                display: none;
-            }
-
-            .visualization-card {
-                margin-bottom: 20px;
-            }
-
-            .visualization-card img {
-                max-width: 100%;
-                height: auto;
-                border-radius: 10px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-
-            .visualization-card img:hover {
-                transform: scale(1.02);
-            }
-
-            .vehicles-grid {
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .vehicle-card {
-                background: rgba(255,255,255,0.95);
-                backdrop-filter: blur(20px);
-                border-radius: 15px;
-                padding: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-                border: 1px solid rgba(255,255,255,0.2);
-                transition: all 0.3s ease;
-            }
-
-            .vehicle-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            }
-
-            .vehicle-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-            }
-
-            .vehicle-title {
-                font-weight: 600;
-                color: var(--dark);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .vehicle-type {
-                background: linear-gradient(135deg, var(--primary), var(--secondary));
-                color: white;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                font-weight: 500;
-            }
-
-            .plate-display {
-                background: linear-gradient(135deg, #2c3e50, #34495e);
-                color: white;
-                padding: 15px;
-                border-radius: 10px;
-                text-align: center;
-                font-family: 'Courier New', monospace;
-                font-size: 1.2rem;
-                font-weight: bold;
-                letter-spacing: 2px;
-                margin-bottom: 15px;
-                border: 3px solid #fff;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            }
-
-            .plate-display.no-plate {
-                background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-                font-style: italic;
-                letter-spacing: normal;
-            }
-
-            .stats-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-                margin-bottom: 15px;
-            }
-
-            .stat-item {
-                text-align: center;
-                padding: 8px;
-                background: rgba(102, 126, 234, 0.1);
-                border-radius: 8px;
-            }
-
-            .stat-label {
-                font-size: 0.8rem;
-                color: #666;
-                margin-bottom: 4px;
-            }
-
-            .stat-value {
-                font-weight: 600;
-                color: var(--dark);
-            }
-
-            .images-section {
-                margin-top: 15px;
-            }
-
-            .images-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 15px;
-            }
-
-            .image-container {
-                text-align: center;
-            }
-
-            .image-label {
-                font-size: 0.8rem;
-                color: #666;
-                margin-bottom: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 5px;
-            }
-
-            .image-wrapper img {
-                max-width: 100%;
-                height: auto;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-
-            .image-wrapper img:hover {
-                transform: scale(1.05);
-            }
-
-            .no-vehicles {
-                text-align: center;
-                padding: 40px;
-                color: #666;
-                font-size: 1.1rem;
-            }
-
-            .no-vehicles i {
-                font-size: 3rem;
-                margin-bottom: 15px;
-                color: #ccc;
-            }
-
-            /* Responsive Design */
-            @media (max-width: 1024px) {
-                .split-container {
-                    flex-direction: row;
-                    height: calc(100vh - 60px);
-                }
-                
-                .left-panel, .right-panel {
-                    width: 50%;
-                    height: 100%;
-                    min-height: auto;
-                }
-                
-                .stats-grid {
-                    grid-template-columns: 1fr;
-                }
-                
-                .images-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-
-            @media (max-width: 768px) {
-                .container {
-                    height: 100vh;
-                }
-                
-                .split-container {
-                    padding: 0;
-                    gap: 0;
-                }
-                
-                .left-panel, .right-panel {
-                    padding: 15px;
-                }
-                
-                .app-title {
-                    font-size: 1.3rem;
-                }
-                
-                .app-header {
-                    padding: 10px;
-                    height: 80px;
-                }
-                
-                .split-container {
-                    height: calc(100vh - 80px);
-                }
-            }
-
-            /* Loading Animation */
-            .loading-dots {
-                display: inline-block;
-            }
-
-            .loading-dots::after {
-                content: '';
-                animation: dots 2s infinite;
-            }
-
-            @keyframes dots {
-                0%, 20% { content: ''; }
-                40% { content: '.'; }
-                60% { content: '..'; }
-                80%, 100% { content: '...'; }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="background-animation"></div>
-
-        <div class="container">
-            <div class="app-header">
-                <h1 class="app-title">🚗 AI License Plate Detection</h1>
-                <p class="app-subtitle">Advanced Computer Vision • Real-time Processing • High Accuracy</p>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <p><strong>Click here to upload an image</strong></p>
+                <p>or drag and drop your file</p>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="uploadFile()">
             </div>
             
-            <div class="split-container">
-                <!-- Left Panel: Upload & Controls -->
-                <div class="left-panel">
-                    <div class="panel-title">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        Upload & Process
-                    </div>
-                    
-                    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                        <div class="upload-text">Drop image here or click to browse</div>
-                        <div class="upload-subtext">Supports JPG, PNG, WEBP • Max 10MB</div>
-                        <input type="file" id="fileInput" accept="image/*" onchange="uploadFile()">
-                    </div>
-                    
-                    <div class="progress-container" id="progressContainer">
-                        <div class="progress-header">
-                            <div class="progress-spinner"></div>
-                            <div class="progress-text">Processing image<span class="loading-dots"></span></div>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill"></div>
-                        </div>
-                        <p style="text-align: center; color: #666; margin-top: 10px; font-size: 0.9rem;">
-                            AI is analyzing vehicles and reading license plates
-                        </p>
-                    </div>
-                    
-                    <div id="alertSuccess" class="alert alert-success">
-                        <i class="fas fa-check-circle" style="margin-right: 10px;"></i>
-                        <span id="successMessage"></span>
-                    </div>
-                    
-                    <div id="alertError" class="alert alert-error">
-                        <i class="fas fa-exclamation-triangle" style="margin-right: 10px;"></i>
-                        <span id="errorMessage"></span>
-                    </div>
-                </div>
-
-                <!-- Right Panel: Results -->
-                <div class="right-panel">
-                    <div class="panel-title">
-                        <i class="fas fa-chart-line"></i>
-                        Detection Results
-                    </div>
-                    
-                    <div id="resultsContainer" class="results-container">
-                        <div style="text-align: center; padding: 60px 20px; color: #999;">
-                            <i class="fas fa-image" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
-                            <div style="font-size: 1.2rem; margin-bottom: 10px;">No image processed yet</div>
-                            <div style="font-size: 1rem;">Upload an image to see detection results</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="pulse">🔄 Processing image... This may take a few moments.</p>
             </div>
+            
+            <div id="error" class="error"></div>
+            <div id="success" class="success"></div>
         </div>
+        
+        <div class="right-panel">
+            <div id="results" class="results"></div>
+        </div>
+    </div>
 
-        <script>
-            let isProcessing = false;
-
-            async function uploadFile() {
-                if (isProcessing) return;
-                
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput.files[0];
-                
-                if (!file) return;
-                
-                // Validate file
-                if (!file.type.startsWith('image/')) {
-                    showAlert('error', 'Please select a valid image file');
-                    return;
-                }
-                
-                if (file.size > 10 * 1024 * 1024) {
-                    showAlert('error', 'File size must be less than 10MB');
-                    return;
-                }
-                
-                isProcessing = true;
-                showProgress();
-                hideAlerts();
-                clearResults();
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                try {
-                    const response = await fetch('/detect', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (response.ok) {
-                        displayResults(result);
-                        showAlert('success', `Successfully processed! Found ${result.results.length} vehicle(s)`);
-                    } else {
-                        showAlert('error', result.detail || 'Processing failed');
-                    }
-                } catch (error) {
-                    showAlert('error', 'Network error: ' + error.message);
-                } finally {
-                    hideProgress();
-                    isProcessing = false;
-                }
-            }
+    <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
             
-            function showProgress() {
-                document.getElementById('progressContainer').style.display = 'block';
-            }
+            if (!file) return;
             
-            function hideProgress() {
-                document.getElementById('progressContainer').style.display = 'none';
-            }
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').innerHTML = '';
+            document.getElementById('success').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
             
-            function showAlert(type, message) {
-                hideAlerts();
-                const alertId = type === 'success' ? 'alertSuccess' : 'alertError';
-                const messageId = type === 'success' ? 'successMessage' : 'errorMessage';
-                
-                document.getElementById(messageId).textContent = message;
-                document.getElementById(alertId).style.display = 'block';
-                
-                setTimeout(() => {
-                    document.getElementById(alertId).style.display = 'none';
-                }, 5000);
-            }
+            const formData = new FormData();
+            formData.append('file', file);
             
-            function hideAlerts() {
-                document.getElementById('alertSuccess').style.display = 'none';
-                document.getElementById('alertError').style.display = 'none';
-            }
-            
-            function clearResults() {
-                const container = document.getElementById('resultsContainer');
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 60px 20px; color: #999;">
-                        <i class="fas fa-cog fa-spin" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
-                        <div style="font-size: 1.2rem; margin-bottom: 10px;">Processing...</div>
-                        <div style="font-size: 1rem;">Please wait while we analyze your image</div>
-                    </div>
-                `;
-                container.style.display = 'block';
-            }
-            
-            function displayResults(data) {
-                const container = document.getElementById('resultsContainer');
+            try {
+                const response = await fetch('/detect', {
+                    method: 'POST',
+                    body: formData
+                });
                 
-                let html = '';
+                const result = await response.json();
                 
-                if (data.visualization_url) {
-                    html += `
-                        <div class="visualization-card">
-                            <h3 style="margin-bottom: 15px; color: var(--dark); display: flex; align-items: center; gap: 10px; font-size: 1.1rem;">
-                                <i class="fas fa-eye"></i>
-                                Detection Visualization
-                                ${data.csv_url ? `<a href="${data.csv_url}" download style="margin-left: auto; background: var(--primary); color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 0.8rem;">
-                                    <i class="fas fa-download"></i> CSV
-                                </a>` : ''}
-                            </h3>
-                            <img src="${data.visualization_url}" alt="Detection Results" onclick="openImageModal(this.src)">
-                        </div>
-                    `;
-                }
-                
-                if (data.results && data.results.length > 0) {
-                    html += '<div class="vehicles-grid">';
-                    
-                    data.results.forEach((vehicle, index) => {
-                        const plateText = vehicle.Plate_Text || 'Not Detected';
-                        const plateClass = vehicle.Plate_Text ? '' : 'no-plate';
-                        
-                        html += `
-                            <div class="vehicle-card" style="animation-delay: ${index * 0.1}s">
-                                <div class="vehicle-header">
-                                    <div class="vehicle-title">
-                                        <i class="fas fa-car"></i>
-                                        Vehicle ${vehicle.Vehicle_ID}
-                                    </div>
-                                    <div class="vehicle-type">${vehicle.Vehicle_Type}</div>
-                                </div>
-                                
-                                <div class="plate-display ${plateClass}">
-                                    ${plateText}
-                                </div>
-                                
-                                <div class="stats-grid">
-                                    <div class="stat-item">
-                                        <div class="stat-label">Vehicle Conf.</div>
-                                        <div class="stat-value">${(vehicle.Vehicle_Confidence * 100).toFixed(1)}%</div>
-                                    </div>
-                                    <div class="stat-item">
-                                        <div class="stat-label">Plate Conf.</div>
-                                        <div class="stat-value">${(vehicle.Plate_Confidence * 100).toFixed(1)}%</div>
-                                    </div>
-                                    <div class="stat-item">
-                                        <div class="stat-label">OCR Conf.</div>
-                                        <div class="stat-value">${(vehicle.OCR_Confidence * 100).toFixed(1)}%</div>
-                                    </div>
-                                    <div class="stat-item">
-                                        <div class="stat-label">Raw OCR</div>
-                                        <div class="stat-value" style="font-size: 0.8rem;">${vehicle.Raw_OCR_Text || 'N/A'}</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="images-section">
-                                    <div class="images-grid">
-                        `;
-                        
-                        if (vehicle.Vehicle_Image) {
-                            const vehicleImagePath = `/results/${data.session_id}/${vehicle.Vehicle_Image}`;
-                            html += `
-                                <div class="image-container">
-                                    <div class="image-label">
-                                        <i class="fas fa-car"></i>
-                                        Vehicle
-                                    </div>
-                                    <div class="image-wrapper">
-                                        <img src="${vehicleImagePath}" alt="Vehicle" onclick="openImageModal(this.src)">
-                                    </div>
-                                </div>
-                            `;
-                        }
-                        
-                        if (vehicle.Plate_Image) {
-                            const plateImagePath = `/results/${data.session_id}/${vehicle.Plate_Image}`;
-                            html += `
-                                <div class="image-container">
-                                    <div class="image-label">
-                                        <i class="fas fa-id-card"></i>
-                                        Plate
-                                    </div>
-                                    <div class="image-wrapper">
-                                        <img src="${plateImagePath}" alt="License Plate" onclick="openImageModal(this.src)">
-                                    </div>
-                                </div>
-                            `;
-                        }
-                        
-                        html += '</div></div></div>';
-                    });
-                    
-                    html += '</div>';
+                if (response.ok) {
+                    displayResults(result);
+                    document.getElementById('success').innerHTML = '✅ Processing completed successfully!';
                 } else {
+                    document.getElementById('error').innerHTML = '❌ Error: ' + result.detail;
+                }
+            } catch (error) {
+                document.getElementById('error').innerHTML = '❌ Network error: ' + error.message;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = '<h2>🎯 Detection Results</h2>';
+            
+            if (data.visualization_url) {
+                html += `<div class="visualization"><h3>📊 Visualization</h3><img src="${data.visualization_url}"></div>`;
+            }
+            
+            if (data.results && data.results.length > 0) {
+                html += '<h3>🚗 Detected Vehicles</h3>';
+                
+                data.results.forEach(vehicle => {
                     html += `
-                        <div class="no-vehicles">
-                            <i class="fas fa-search"></i>
-                            <div>No vehicles detected</div>
-                            <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.7;">
-                                Try uploading a clearer image with visible vehicles
-                            </p>
-                        </div>
+                        <div class="vehicle-card">
+                            <h4>Vehicle ${vehicle.Vehicle_ID}: ${vehicle.Vehicle_Type}</h4>
+                            <p><strong>Vehicle Confidence:</strong> ${(vehicle.Vehicle_Confidence * 100).toFixed(1)}%</p>
+                            
+                            <div class="plate-display">
+                                <h3>🏷️ License Plate: <span class="plate-number">${vehicle.Plate_Text || 'Not detected'}</span></h3>
+                            </div>
+                            
+                            <p><strong>Raw OCR:</strong> ${vehicle.Raw_OCR_Text || 'N/A'}</p>
+                            <p><strong>OCR Confidence:</strong> ${(vehicle.OCR_Confidence * 100).toFixed(1)}%</p>
+                            
+                            <div class="images">
                     `;
-                }
-                
-                container.innerHTML = html;
-                container.style.display = 'block';
+                    
+                    if (vehicle.Vehicle_Image) {
+                        html += `<div><p>Vehicle Image:</p><img src="/results/${data.session_id}/${vehicle.Vehicle_Image}" alt="Vehicle"></div>`;
+                    }
+                    
+                    if (vehicle.Plate_Image) {
+                        html += `<div><p>Plate Image:</p><img src="/results/${data.session_id}/${vehicle.Plate_Image}" alt="Plate"></div>`;
+                    }
+                    
+                    html += '</div></div>';
+                });
+            } else {
+                html += '<p>No vehicles detected in the image.</p>';
             }
             
-            function openImageModal(src) {
-                window.open(src, '_blank');
+            if (data.csv_url) {
+                html += `<div style="text-align: center;"><a href="${data.csv_url}" download class="download-btn">📥 Download CSV Results</a></div>`;
             }
             
-            // Enhanced drag and drop
-            const uploadArea = document.querySelector('.upload-area');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight(e) {
-                uploadArea.classList.add('dragover');
-            }
-            
-            function unhighlight(e) {
-                uploadArea.classList.remove('dragover');
-            }
-            
-            uploadArea.addEventListener('drop', handleDrop, false);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                
-                if (files.length > 0) {
-                    document.getElementById('fileInput').files = files;
-                    uploadFile();
-                }
-            }
-        </script>
-    </body>
-    </html>
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
     """
 
 @app.post("/detect")
@@ -931,7 +533,7 @@ async def process_image_async(image_path: str, output_dir: str):
         best_ocr_result = None
         
         try:
-            plate_result = plate_model(vehicle_crop, verbose=False, conf=0.3)[0]
+            plate_result = plate_model(vehicle_crop, verbose=False, conf=0.2)[0]
             
             if plate_result.boxes:
                 # Get the best plate detection
@@ -949,9 +551,20 @@ async def process_image_async(image_path: str, output_dir: str):
                 if best_plate:
                     px1, py1, px2, py2 = best_plate
                     plate_conf = best_conf
+                    
+                    # Expand crop area by 10% on each side
+                    crop_expand = 0.1
+                    w_expand = int((px2 - px1) * crop_expand)
+                    h_expand = int((py2 - py1) * crop_expand)
+                    
+                    px1 = max(0, px1 - w_expand)
+                    py1 = max(0, py1 - h_expand)
+                    px2 = min(vehicle_crop.shape[1], px2 + w_expand)
+                    py2 = min(vehicle_crop.shape[0], py2 + h_expand)
+                    
                     plate_bbox = (vx1 + px1, vy1 + py1, vx1 + px2, vy1 + py2)
                     
-                    # Crop plate
+                    # Crop plate with expanded area
                     plate_crop = vehicle_crop[py1:py2, px1:px2]
                     if plate_crop.size > 0:
                         # Save original plate crop
@@ -959,21 +572,36 @@ async def process_image_async(image_path: str, output_dir: str):
                         plate_path = os.path.join(output_dir, plate_filename)
                         cv2.imwrite(plate_path, plate_crop)
                         
-                        # Try multiple OCR methods
+                        # Try multiple OCR methods with enhanced preprocessing
                         best_ocr_result = try_multiple_ocr_methods(plate_crop, ocr_engine)
+                        
+                        # If first attempt fails or gives partial results, try aggressive methods
+                        if not best_ocr_result or len(best_ocr_result[0]) < 4:
+                            # Try with enhanced preprocessing
+                            enhanced_plate = enhance_plate_image_for_ocr(plate_crop)
+                            enhanced_result = try_multiple_ocr_methods(enhanced_plate, ocr_engine)
+                            
+                            if enhanced_result and (not best_ocr_result or len(enhanced_result[0]) > len(best_ocr_result[0])):
+                                best_ocr_result = enhanced_result
+                        
+                        # Try different scales if still not good
+                        if not best_ocr_result or len(best_ocr_result[0]) < 4:
+                            for scale in [2.0, 3.0, 1.5]:
+                                h, w = plate_crop.shape[:2]
+                                scaled = cv2.resize(plate_crop, (int(w*scale), int(h*scale)), interpolation=cv2.INTER_CUBIC)
+                                scaled_result = try_multiple_ocr_methods(scaled, ocr_engine)
+                                
+                                if scaled_result and (not best_ocr_result or len(scaled_result[0]) > len(best_ocr_result[0])):
+                                    best_ocr_result = scaled_result
+                                    break
                         
                         if best_ocr_result:
                             raw_text = best_ocr_result[0]
                             filtered_text = filter_plate_text_relaxed(raw_text)
                             
-                            # If filtering fails but we have raw text, use raw text
                             if filtered_text:
                                 plate_text = filtered_text
-                            elif raw_text and len(raw_text.strip()) >= 2:
-                                plate_text = raw_text.strip().upper()
-                                print(f"   Using raw OCR text: '{plate_text}'")
-                            
-                            if plate_text:  # If we have any plate text
+                                
                                 # Save enhanced plate
                                 enhanced_plate = enhance_plate_image_advanced(plate_crop)
                                 enhanced_path = os.path.join(output_dir, f"plate_{i+1}_enhanced.jpg")
@@ -1046,10 +674,6 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-
-
 
 
 

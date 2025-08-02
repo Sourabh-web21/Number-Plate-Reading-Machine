@@ -1,0 +1,4 @@
+Vehicle_ID,Vehicle_Type,Vehicle_Confidence,Plate_Text,Plate_Confidence,OCR_Confidence,Raw_OCR_Text,Vehicle_BBox,Plate_BBox,Vehicle_Image,Plate_Image
+1,car,0.96,MHZODV2366,0.507,0.724,MHZODV2366,"(10, 43, 1288, 1049)","(361, 721, 883, 850)",vehicle_1_car.jpg,plate_1_original.jpg
+2,car,0.731,,0.0,0.0,,"(1213, 117, 1552, 364)",,vehicle_2_car.jpg,
+3,car,0.561,,0.0,0.0,,"(1562, 139, 1892, 319)",,vehicle_3_car.jpg,
