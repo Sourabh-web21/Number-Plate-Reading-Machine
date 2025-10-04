@@ -2,16 +2,20 @@
 
 A state-of-the-art license plate detection and recognition system built with FastAPI, YOLO models, and advanced OCR techniques. This system provides real-time vehicle detection, license plate extraction, and text recognition with a modern web interface.
 
-## ✨ Features
+## Features
 
-- **🎯 Advanced Vehicle Detection**: Uses YOLO models for accurate vehicle identification
-- **🔍 License Plate Detection**: Specialized model for precise plate localization
-- **📝 OCR Text Recognition**: Multiple OCR methods with enhanced preprocessing
-- **🌐 Web Interface**: Modern, responsive UI with drag-and-drop functionality
-- **📊 Detailed Results**: Comprehensive detection results with confidence scores
-- **💾 Export Options**: CSV export and visualization downloads
-- **🔄 Real-time Processing**: Fast, asynchronous image processing
-- **📱 Mobile Friendly**: Responsive design works on all devices
+- 🚗 **Multi-Vehicle Detection** - Detects multiple vehicles in a single image
+- 🏷️ **License Plate Recognition** - Advanced OCR with multiple preprocessing methods
+- 📊 **Visual Results** - Bounding boxes with confidence scores for vehicles and plates
+- 📥 **Export Results** - Download detection data as CSV
+- 🎯 **High Accuracy** - Custom-trained YOLOv8 models for vehicle and plate detection
+
+## Screenshots
+
+### Main Interface
+![License Plate Detection Demo](\Screenshot_demo.png)
+
+The system successfully detects multiple vehicles and their license plates with high confidence scores, showing both raw OCR output and filtered results.
 
 ## 🚀 Quick Start
 
