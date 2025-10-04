@@ -13,7 +13,7 @@ A state-of-the-art license plate detection and recognition system built with Fas
 ## Screenshots
 
 ### Main Interface
-![License Plate Detection Demo](\Screenshot_demo.png)
+![License Plate Detection Demo](Screenshot_demo.png)
 
 The system successfully detects multiple vehicles and their license plates with high confidence scores, showing both raw OCR output and filtered results.
 
